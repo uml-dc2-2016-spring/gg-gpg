@@ -92,7 +92,7 @@ def get_output(args):
 
     return sp.check_output(args)
 
-def encrypt(msg, recipient_ids):
+def encrypt(msg, recipient_ids, armor=True):
     """
     Encrypt an input string into a gpg message making an external subprocess call to the system's gpg command.
 
@@ -105,16 +105,54 @@ def encrypt(msg, recipient_ids):
 
     """
 
-    cmd_str = 'gpg --armor --encrypt '
+    cmd_str = 'gpg --encrypt '
+
+    if armor:
+        cmd_str += '--armor '
 
     for keyid in recipient_ids:
         cmd_str += '--recipient '
         cmd_str += keyid
         cmd_str += ' '
 
-    p = run_proc(cmd_str, stdin=sp.PIPE, stdout=sp.PIPE)
+    return run_piped_proc(cmd, msg)
 
-    out, err = p.communicate(msg)
+def run_piped_proc(cmd, data):
+    """
+        pass data to stdin and get the output of the process.
+    """
+
+    p = run_proc(cmd, stdin=sp.PIPE, stdout=sp.PIPE)
+    out, err = p.communicate(data)
 
     return out
+
+
+def enarmor(msg):
+    """
+        take a binary gpg message and convert it to an ascii armored one.
+
+        params:
+            msg: the binary blob message
+
+        return: the ascii armored message
+    """
+
+    cmd = 'gpg --enarmor'
+
+    return run_piped_proc(cmd, data)
+
+def dearmor(msg):
+    """
+        convert an ascii armored gpg message to a binary blob.
+
+        params:
+            msg: the ascii armored message
+
+        return: the message in binary form
+    """
+
+    cmd = 'gpg --dearmor'
+
+    return run_piped_proc(cmd, msg)
 
