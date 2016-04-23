@@ -58,7 +58,7 @@ def get_public_keys():
         return:
             A dictionary containing subkey and key keys, with lists of each respective available key list.
     """
-    out = get_output('gpg --list-keys --with-colons')
+    out = get_output('gpg --list-keys --with-colons').split('\n')
 
     keys = []
     subkeys = []
@@ -91,3 +91,30 @@ def get_output(args):
     args = shlex.split(args)
 
     return sp.check_output(args)
+
+def encrypt(msg, recipient_ids):
+    """
+    Encrypt an input string into a gpg message making an external subprocess call to the system's gpg command.
+
+    Raises any exceptions that subprocess.Popen or Popen.communicate might raise.
+
+    params:
+        `msg`: a string to encrypt, in theory should just be a serializable blob but only tested with strings.
+
+    return: the encrypted string
+
+    """
+
+    cmd_str = 'gpg --armor --encrypt '
+
+    for keyid in recipient_ids:
+        cmd_str += '--recipient '
+        cmd_str += keyid
+        cmd_str += ' '
+
+    p = run_proc(cmd_str, stdin=sp.PIPE, stdout=sp.PIPE)
+
+    out, err = p.communicate(msg)
+
+    return out
+
