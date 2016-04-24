@@ -2,19 +2,32 @@
 import ConfigParser
 import os
 
-def parse_file(name, root=None):
-    config = ConfigParser.SafeConfigParser(allow_no_value=True)
+class config:
 
-    if root:
-        name = os.path.join(root, name)
+    def __init__(self, name='.config', root=None):
+        self.config = ConfigParser.SafeConfigParser(allow_no_value=True)
+        if root:
+            name = os.path.join(root, name)
+        self.config_file = name
 
-    config.read(name)
-    return config
+        self.config.read(name)
 
-def get_channel_list(config=None):
+    def get_channel_list(self):
+        return self.config.sections()
 
-    if not config:
-        config = parse_file('.config')
+    def get_channel_opts(self, channel):
+        return dict(self.config.items(channel))
 
-    return config.sections()
+    def __str__(self):
 
+        with open(self.config_file, 'r') as f:
+            data = f.read()
+        return data
+
+    def __eq__(self, other):
+
+        return other.config_file == self.config_file
+
+    def __ne__(self, other):
+
+        return not self.__eq__(other)
