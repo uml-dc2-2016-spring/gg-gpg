@@ -105,15 +105,15 @@ def encrypt(msg, recipient_ids, armor=True):
 
     """
 
-    cmd_str = 'gpg --encrypt '
+    cmd = 'gpg --encrypt '
 
     if armor:
-        cmd_str += '--armor '
+        cmd += '--armor '
 
     for keyid in recipient_ids:
-        cmd_str += '--recipient '
-        cmd_str += keyid
-        cmd_str += ' '
+        cmd += '--recipient '
+        cmd += keyid
+        cmd += ' '
 
     return run_piped_proc(cmd, msg)
 
@@ -140,7 +140,7 @@ def enarmor(msg):
 
     cmd = 'gpg --enarmor'
 
-    return run_piped_proc(cmd, data)
+    return run_piped_proc(cmd, msg)
 
 def dearmor(msg):
     """
