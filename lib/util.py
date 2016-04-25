@@ -3,14 +3,17 @@ import os
 import subprocess as sp
 import shlex
 import re
+import socket
 
-def create_channel(name, rootdir, infile='in', outfile='out'):
+def create_channel(name, rootdir, infile=None, outfile=None):
     """
         Create the fifo and text file objects that will be written to and read from by the end user. If the directory doesn't exist, create that too.
 
         params:
             name: a string to name the channel.
             rootdir: the root directory where all channels exist.
+            infile: either the name of the text file to create, or none if the channel is send only or individual file creation
+            outfile: either the name of the fifo to create, or None if the channel is going to be receive only
 
         returns:
             nothing
@@ -26,10 +29,35 @@ def create_channel(name, rootdir, infile='in', outfile='out'):
 
     os.chdir(name)
 
-    os.mkfifo(infile)
-    open(outfile, 'a+')
+    if outfile:
+        try:
+            os.mkfifo(outfile)
+        except OSError as e:
+            if e.errno != 17:
+                raise e
+            pass
+            # if errno 17, file exists, continue as normal and use existing fifo
+
+    # create a blank file to append received messages to
+    if infile:
+        open(infile, 'a').close()
 
     os.chdir(cwd)
+
+def open_fifo_read(name, root=None):
+    return open_fifo(name, root, 'r')
+
+def open_fifo_write(name, root=None):
+    return open_fifo(name, root, 'w')
+
+def open_fifo(name, root, mode, buffering=-1):
+    if root:
+        name = os.path.join(root, name)
+
+    return open(name, mode, buffering)
+
+def resolve_hostname(host, port):
+    return socket.getaddrinfo(host, port, 0,0, socket.IPPROTO_TCP)
 
 def get_secret_keys():
     """
@@ -73,6 +101,13 @@ def get_public_keys():
 
 
 def run_proc(args, bufsize=0, executable=None, stdin=None, stdout=None, stderr=None, preexec_fn=None, close_fds=False, shell=False, cwd=None, env=None, universal_newlines=False, startupinfo=None, creationflags=0):
+    """
+        a wrapper around the Popen constructor that calls shlex.split() on the first argument so a single string can be passed instead of a list of strings.
+
+        params: see Popen
+
+        returns: subprocess.Popen object with shlex'ed args.
+    """
 
     args = shlex.split(args)
 
