@@ -42,22 +42,7 @@ def create_channel(name, rootdir, infile=None, outfile='out'):
 
     os.chdir(cwd)
 
-def open_fifo_read(name, root=None):
-    return open_fifo(name, root, 'r')
-
-def open_fifo_write(name, root=None):
-    return open_fifo(name, root, 'w')
-
-def open_fifo(name, root, mode, buffering=-1):
-    if root:
-        name = os.path.join(root, name)
-
-    return open(name, mode, buffering)
-
-def resolve_hostname(host, port):
-    return socket.getaddrinfo(host, port, 0,0, socket.IPPROTO_TCP)
-
-def get_secret_keys():
+def get_secret_ids():
     """
         List the available secret keys that can be used for decryption or signing.
 
@@ -77,9 +62,9 @@ def get_secret_keys():
 
     return {'keys': keys, 'subkeys': subkeys }
 
-def get_public_keys():
+def get_public_ids():
     """
-        Same as get_secret_keys, except for public keys.
+        Same as get_secret_ids, except for public keys.
 
         return:
             A dictionary containing subkey and key keys, with lists of each respective available key list.
@@ -96,6 +81,21 @@ def get_public_keys():
             subkeys.append(line.split(':')[4])
 
     return {'keys': keys, 'subkeys': subkeys }
+
+def resolve_hostname(host, port):
+    """
+        resolve a domain name (ex. google.com) to an ip address usable with socket.connect()
+
+        params:
+            host: the domain name to resolve to an IP address
+            port: the port number. this is important because socket.getadddrinfo()
+                can return a tuple which is directly passable to socket.connect()
+
+        returns: a tuple for use with socket.connect()
+    """
+    return socket.getaddrinfo(host, port, 0,0, socket.IPPROTO_TCP)
+
+
 
 
 def run_proc(args, bufsize=0, executable=None, stdin=None, stdout=None, stderr=None, preexec_fn=None, close_fds=False, shell=False, cwd=None, env=None, universal_newlines=False, startupinfo=None, creationflags=0):
@@ -125,28 +125,23 @@ def get_output(args):
 
     return sp.check_output(args)
 
-def encrypt(msg, recipient_ids, armor=True):
+def encrypt(msg, recipient_ids, sign_id=None, armor=True):
     """
     Encrypt an input string into a gpg message making an external subprocess call to the system's gpg command.
 
     Raises any exceptions that subprocess.Popen or Popen.communicate might raise.
 
     params:
-        `msg`: a string to encrypt, in theory should just be a serializable blob but only tested with strings.
+        msg: a string to encrypt, in theory should just be a serializable blob but only tested with strings.
+        recipient_ids: a list of public keys to encrypt with.
+        sign_id: the key ID to sign with.
+        armor: flag to tell gpg to generate ascii or binary message
 
     return: the encrypted string
 
     """
 
-    cmd = 'gpg --encrypt '
-
-    if armor:
-        cmd += '--armor '
-
-    for keyid in recipient_ids:
-        cmd += '--recipient '
-        cmd += keyid
-        cmd += ' '
+    cmd = get_encrypt_cmd(recipient_ids, sign_id, armor)
 
     return run_piped_proc(cmd, msg)
 
@@ -188,4 +183,45 @@ def dearmor(msg):
     cmd = 'gpg --dearmor'
 
     return run_piped_proc(cmd, msg)
+
+def get_encrypt_cmd(recipient_ids, sign_id=None, armor=True):
+    """
+        create an encrypt/sign command for executing through subprocess.
+
+        the order matters: gpg _options_ (local-user) come before _commands_ (--encrypt)
+
+        params:
+            recipient_ids: list of recipient key IDs
+            sign_id: optional key ID to sign message with
+            armor: flag to tell gpg to generate ascii or binary blob message
+    """
+
+    cmd = 'gpg '
+    if armor:
+        cmd += '--armor '
+
+    if sign_id:
+        cmd += '--local-user %s ' % sign_id
+
+
+    for keyid in recipient_ids:
+        cmd += '--recipient %s ' % keyid
+
+    cmd += '--encrypt '
+
+    if sign_id:
+        cmd += '--sign '
+
+
+def get_encrypt_fn(recipient_ids, sign_id=None, armor=True):
+    """
+        construct and return a method to encrypt messages based on certain keyids. should be passed to a sender as the serializing method.
+
+        params:
+            recipient_ids: list of recipient keys to encrypt to
+            sign_id: the optional key to sign with.
+            armor: flag to
+    """
+
+    return (lambda msg: encrypt(msg, keyids, armor))
 
