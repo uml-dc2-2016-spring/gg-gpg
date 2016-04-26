@@ -1,6 +1,6 @@
 
 import os
-import subprocess as sp
+import subprocess
 import shlex
 import re
 import socket
@@ -109,7 +109,7 @@ def run_proc(args, bufsize=0, executable=None, stdin=None, stdout=None, stderr=N
 
     args = shlex.split(args)
 
-    return sp.Popen(args, bufsize, executable, stdin, stdout, stderr, preexec_fn, close_fds, shell, cwd, env, universal_newlines, startupinfo, creationflags)
+    return subprocess.Popen(args, bufsize, executable, stdin, stdout, stderr, preexec_fn, close_fds, shell, cwd, env, universal_newlines, startupinfo, creationflags)
 
 def get_output(args):
     """
@@ -123,7 +123,7 @@ def get_output(args):
     """
     args = shlex.split(args)
 
-    return sp.check_output(args)
+    return subprocess.check_output(args)
 
 def encrypt(msg, recipient_ids, sign_id=None, armor=True):
     """
