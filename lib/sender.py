@@ -67,7 +67,7 @@ class sender:
 
 if __name__ == '__main__':
     import os
-    infile = None
+    infile = 'in'
     outfile = 'out'
     root = os.getcwd()
     channel = 'testout'
@@ -76,5 +76,5 @@ if __name__ == '__main__':
     port = 9000
 
     util.create_channel(channel, root, infile, outfile)
-    sender = sender(outfile, os.path.join(root, channel) , host, port)
+    sender = sender(infile, outfile, os.path.join(root, channel) , host, port)
     sender.start()
