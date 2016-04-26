@@ -34,13 +34,17 @@ class sender:
 
     def start(self):
         while True:
-            with util.open_fifo_read(self.fifo) as f:
+            with open(self.fifo, 'r') as f:
 
-                data = None
+                data = f.read()
+                if self.log:
+                    with open(self.log, 'a') as f:
+
+                        localtime = time.asctime( time.localtime(time.time()) )
+                        f.write('%s sent: %s' % (localtime, data))
+
                 if self.serialize:
                     data = self.serialize(f.read())
-                else:
-                    data = f.read()
 
                 self.sock.connect((host, port))
                 self.sock.send(data)
