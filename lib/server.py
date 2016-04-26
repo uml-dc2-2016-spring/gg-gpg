@@ -1,7 +1,7 @@
 import SocketServer
 
 import util
-import multiprocessing as mp
+import multiprocessing
 
 listening_channels = []
 
@@ -39,7 +39,7 @@ def start_appender(host, port, channel, infile='in', deserializer=None):
     server.allow_reuse_address=1
     server.infile = infile
     server.deserialize = deserializer
-    server_proc = mp.Process(target=server.serve_forever)
+    server_proc = multiprocessing.Process(target=server.serve_forever)
     server_proc.daemon = True
     server_proc.start()
     return server_proc
