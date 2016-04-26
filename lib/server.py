@@ -21,27 +21,29 @@ class AppendingTCPHandler(SocketServer.BaseRequestHandler):
         self.data = self.request.recv(8193).strip()
         if self.server.deserialize:
             out = self.server.deserialize(self.data)
-        out = self.data
+        else:
+            out = self.data
 
-        with open(self.server.infile, 'a') as of:
+        with open(self.server.outfile, 'a') as of:
             of.write('%s: %s\n' % (self.client_address[0], out.decode()))
 
 
-def start_appender(host, port, channel, infile='in', deserializer=None):
+def start_appender(host, port, channel, outfile='out', deserializer=None):
     import os
     global listening_channels
 
     if not os.path.isdir(channel):
-       util.create_channel(channel, os.getcwd(), infile)
+       util.create_channel(channel, os.getcwd(), None, outfile)
     os.chdir(channel)
 
     server = SocketServer.TCPServer((host, port), AppendingTCPHandler)
     server.allow_reuse_address=1
-    server.infile = infile
+    server.outfile = outfile
     server.deserialize = deserializer
     server_proc = multiprocessing.Process(target=server.serve_forever)
     server_proc.daemon = True
     server_proc.start()
+    print 'server started'
     return server_proc
 
 if __name__ == '__main__':
