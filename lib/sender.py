@@ -1,14 +1,22 @@
 
 import socket
 import util
+import time
+
+def init_noappend_sender(fifoname, root, host, port, serializer=None):
+    return sender(fifoname, None, root, host, port, serializer)
+
+def init_appending_sender(fifoname, log, root, host, port, serializer=None):
+    return sender(fifoname, log, root, host, port, serializer)
 
 class sender:
 
-    def __init__(self, fifoname, root, host, port, serializer=None):
+    def __init__(self, fifoname, log, root, host, port, serializer=None):
         """
         params:
-            root: root channel directory.
             fifoname: name of the fifo file to listen to
+            log: the local text file to append sent messages to.
+            root: root channel directory.
             host: remote host to send to
             port: port on remote host
             serializer: function that prepares received data for transfer. if None, data is sent as is.
@@ -16,6 +24,7 @@ class sender:
         """
         if not root:
             root = os.getcwd()
+        self.log = log
         self.root = root
         self.host = host
         self.port = port
