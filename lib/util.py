@@ -217,6 +217,8 @@ def get_encrypt_cmd(recipient_ids, sign_id=None, armor=True):
             recipient_ids: list of recipient key IDs
             sign_id: optional key ID to sign message with
             armor: flag to tell gpg to generate ascii or binary blob message
+
+        return: the constructed gpg command
     """
 
     cmd = 'gpg '
@@ -234,6 +236,8 @@ def get_encrypt_cmd(recipient_ids, sign_id=None, armor=True):
 
     if sign_id:
         cmd += '--sign '
+
+    return cmd
 
 
 def get_encrypt_fn(recipient_ids, sign_id=None, armor=True):
