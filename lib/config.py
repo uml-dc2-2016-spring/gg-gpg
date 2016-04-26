@@ -2,7 +2,7 @@
 import ConfigParser
 import os
 
-class config:
+class config(object):
 
     def __init__(self, name='.config', root=None):
         self.config = ConfigParser.SafeConfigParser(allow_no_value=True)
@@ -26,7 +26,7 @@ class config:
 
     def __eq__(self, other):
 
-        return other.config_file == self.config_file
+        return self.__str__() == other.__str__()
 
     def __ne__(self, other):
 
