@@ -4,22 +4,25 @@
 describe your weekly progress here
 
 #### Progress (Week 3/29)
-describe your weekly progress here
+So far only code done is initial proof of concept of TCP server/ socket which will receive/send gpg encrypted data, respectively.
 
 #### Usage 
-This is very incomplete and has everything hardcoded to my own values. There is nothing to run right now. But the gist is here. However, at the time of writing this is only run in a linux environment. dependencies: gpg command, created keys, a public key for destination encryption.
+See config example file. setup config example file with appropriate values, and run the main.py script with the config file as an argument.
+main.py will create a directory structure with each channel's input fifo and output log.
+to send to a channel's remote, simply `echo msg > fifo`
+to view the output log, `tail out` or any other file viewing command.
 
 
 #### Getting Started
 
-Requirements: a system with the "gpg" command on its path.
+Requirements: a linux system with the "gpg" command on its path.
 
-prerequisite public keys downloaded
+prerequisite public and private keys must be downloaded and added to the gpg keyring.
 
 
 #### Feature implementations  :
-* signing messages
-* config file for settings
-* File transfer
-* separated programs for sender and receiver
-* create fifo file and text output file with messages
+* signing messages - a receiver will either see the sender's IP or their uid real name value as the sender based on whether or not the message is signed.
+* config file for settings 
+* File transfer - implemented with
+* separated programs for sender and receiver - each channel can send or receive, or both.
+* create fifo file and text output file with messages - each channel has a fifo object and a text output object for what it has received/sent.
