@@ -27,9 +27,9 @@ def create_channel(name, rootdir, infile=None, outfile='out'):
 
     os.chdir(name)
 
-    if outfile:
+    if infile:
         try:
-            os.mkfifo(outfile)
+            os.mkfifo(infile)
         except OSError as e:
             if e.errno != 17:
                 raise e
@@ -37,8 +37,10 @@ def create_channel(name, rootdir, infile=None, outfile='out'):
             # if errno 17, file exists, continue as normal and use existing fifo
 
     # create a blank file to append received messages to
-    if infile:
-        open(infile, 'a').close()
+    if outfile:
+        open(outfile, 'a').close()
+
+    print 'created channel %s in: %s out: %s' % (name, infile, outfile)
 
     os.chdir(cwd)
 
@@ -148,12 +150,33 @@ def encrypt(msg, recipient_ids, sign_id=None, armor=True):
 def run_piped_proc(cmd, data):
     """
         pass data to stdin and get the output of the process.
+
+        params:
+            cmd: the string to run
+            data: the blob to pass to the process over stdin
     """
 
-    p = run_proc(cmd, stdin=sp.PIPE, stdout=sp.PIPE)
+    p = run_proc(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     out, err = p.communicate(data)
 
     return out
+
+def recv_ids(keyids):
+    """
+        request key ids to install from the keyserver. This should be tried if
+        gpg cannot decrypt a signed message.
+
+        params:
+            keyids: a list of keyids to request from the keyserver.
+
+        return: nothing. throw an exception upon failure.
+    """
+
+    cmd = 'gpg --recv-keys '
+
+    for key in keyids:
+        cmd += '%s ' % key
+
 
 
 def enarmor(msg):
