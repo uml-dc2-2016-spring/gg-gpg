@@ -5,15 +5,13 @@ import shlex
 import re
 import socket
 
-def create_channel(name, rootdir, infile=None, outfile=None):
+def create_channel(name, rootdir, infile=None, outfile='out'):
     """
-        Create the fifo and text file objects that will be written to and read from by the end user. If the directory doesn't exist, create that too.
-
         params:
             name: a string to name the channel.
             rootdir: the root directory where all channels exist.
-            infile: either the name of the text file to create, or none if the channel is send only or individual file creation
-            outfile: either the name of the fifo to create, or None if the channel is going to be receive only
+            infile: either the name of the fifo to create, or none if the channel is receive only
+            outfile: either the name of the text file to create. a text file is always created because either way the sender will save what it sends.
 
         returns:
             nothing
