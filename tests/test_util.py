@@ -8,6 +8,9 @@ import shutil
 sys.path.insert(0, os.path.abspath('../lib'))
 import util
 
+class test_parse_config(unittest.TestCase):
+    pass
+
 class test_directory_manip(unittest.TestCase):
 
     def setUp(self):
