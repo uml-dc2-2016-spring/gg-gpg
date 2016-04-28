@@ -6,6 +6,7 @@ import gpg
 import multiprocessing
 import os
 import sys
+import time
 
 def init_sender_from_config(config):
     """
@@ -93,10 +94,13 @@ class sender:
                     f.write('%s sent: %s' % (localtime, data))
 
             if self.serialize:
-                data = self.serialize(data)[0]
+                data = self.serialize(data)
+
+            print 'ENCRYPTED DATA:\n %s' % data
 
             self.sock.connect((self.host, self.port))
-            self.sock.send(data)
+
+            self.sock.sendall(data)
             self.sock.close()
 
     def __str__(self):

@@ -5,6 +5,7 @@ import tempfile
 import datetime
 import socket
 import sys
+import time
 
 import util
 import gpg
@@ -13,6 +14,40 @@ class AbstractTCPHandler(SocketServer.BaseRequestHandler):
     """
         class for shared methods between appending and separate file tcp handlers.
     """
+    def recv_timeout(self, the_socket,timeout=2):
+        #make socket non blocking
+        the_socket.setblocking(0)
+
+        #total data partwise in an array
+        total_data=[];
+        data='';
+
+        #beginning time
+        begin=time.time()
+        while 1:
+            #if you got some data, then break after timeout
+            if total_data and time.time()-begin > timeout:
+                break
+
+                #if you got no data at all, wait a little longer, twice the timeout
+            elif time.time()-begin > timeout*2:
+                break
+
+                #recv something
+            try:
+                data = the_socket.recv(8192)
+                if data:
+                    total_data.append(data)
+                    #change the beginning time for measurement
+                    begin=time.time()
+                else:
+                    #sleep for sometime to indicate a gap
+                    time.sleep(0.1)
+            except:
+                pass
+
+        the_socket.setblocking(1)
+        return ''.join(total_data)
 
     def recv_all_tmp_file(self):
         """
@@ -21,12 +56,8 @@ class AbstractTCPHandler(SocketServer.BaseRequestHandler):
             return: the temporary file containing the read socket.
         """
         tmp = tempfile.TemporaryFile()
-        # while True:
-        #     data = self.request.recv(4096)
-        #     if not data: break
-        #     tmp.write(data)
 
-        data = self.request.recv(8192)
+        data = self.request.recv(2 ** 16)
         tmp.write(data)
 
         tmp.seek(0)
@@ -56,6 +87,7 @@ class AppendingTCPHandler(AbstractTCPHandler):
         with self.recv_all_tmp_file() as tmp:
 
             data = tmp.read()
+            print data
 
             data = self.deserialize(data)
 
@@ -66,7 +98,7 @@ class AppendingTCPHandler(AbstractTCPHandler):
             time = datetime.datetime.now().strftime('%c')
 
             with open(self.server.outfile, 'a') as of:
-                of.write('%s %s: %s\n' % (time, name, out.decode()))
+                of.write('%s %s: %s\n' % (time, name, data.decode()))
 
 
 class SeparateFileTCPHandler(AbstractTCPHandler):
