@@ -21,22 +21,14 @@ class AbstractTCPHandler(SocketServer.BaseRequestHandler):
             return: the temporary file containing the read socket.
         """
         tmp = tempfile.TemporaryFile()
-        print 'server created tmp file for receiving'
         # while True:
         #     data = self.request.recv(4096)
         #     if not data: break
         #     tmp.write(data)
 
         data = self.request.recv(8192)
-        print 'server writing to temp file, finished reading from socket'
         tmp.write(data)
 
-        print 'server got out of while loop in handler'
-        sys.stdout.flush()
-
-        tmp.seek(0)
-        print 'server %s' % tmp.read().decode()
-        sys.stdout.flush()
         tmp.seek(0)
 
         return tmp
@@ -61,16 +53,13 @@ class AppendingTCPHandler(AbstractTCPHandler):
 
     def handle(self):
         # self.request is the TCP socket connected to the client
-        print 'server in appending handler'
         with self.recv_all_tmp_file() as tmp:
-
-            sys.stdout.flush()
 
             data = tmp.read()
 
             data = self.deserialize(data)
 
-            name = client_address[0] # set name to IP address first
+            name = self.client_address[0] # set name to IP address first
 
             uid = gpg.get_packet_signer_id(data)
 
@@ -87,11 +76,9 @@ class SeparateFileTCPHandler(AbstractTCPHandler):
         This one implements separate file saving per connection.
     """
     def handle(self):
-        print 'server in SeparateFileTCPHandler'
         with self.recv_all_tmp_file() as tmp:
             data = tmp.read()
 
-            print sys.stdout.flush()
             data = self.deserialize(data)
 
             filename = datetime.datetime.now().strftime('%Y%b%d_%H_%M_%S_%f')
