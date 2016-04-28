@@ -4,6 +4,84 @@ import subprocess
 import shlex
 import re
 import socket
+import config
+import logging
+import server
+import sender
+import gpg
+
+def parse_config(filename, rootdir=None):
+    """
+        open and parse the starting config file. create the channels based on the config file.
+
+        will use the current working directory as the rootdir if none is found.
+
+        params:
+            filename: the config file's filename.
+            rootdir: a path to the directory with the config file.
+    """
+
+    cwd = os.getcwd()
+
+    if not rootdir:
+        rootdir = cwd
+
+    os.chdir(rootdir)
+
+    cfg = config.config(filename, rootdir)
+
+    channels = cfg.get_channel_list()
+
+    procs = {}
+
+    for chan in channels:
+
+        opts = cfg.get_channel_opts(chan)
+        procs[chan] = get_server_sender_procs(chan, opts)
+
+
+    os.chdir(cwd)
+
+def get_server_sender_procs(name, opts):
+    """
+        parse an individual channel's options and create processes for each
+        channel's sender and server
+
+        params:
+            opts: the dictionary of channel options.
+
+        returns:
+            nothing. will raise an exception if it fails.
+    """
+
+    gpg_helper = gpg.init_gpg_from_config(opts)
+
+    deserializer = None
+    sender_proc = None
+
+    serializer = lambda x: gpg_helper.encrypt(x)
+
+    #if the store_raw key is not present, attempt to decrypt the data.
+    if not 'store_raw' in opts.keys():
+        deserializer = lambda x: gpg.decrypt(x)
+
+    # create the channel. none can be passed into root because we are assuming correct directory.
+    create_channel(name, os.getcwd(), infile='in', outfile='out')
+
+    cwd = os.getcwd()
+    os.chdir(name)
+
+    server_proc = server.init_server_from_config(name, opts, deserializer=deserializer)
+    sender_proc = sender.init_sender_from_config(opts)
+
+    if server_proc:
+        server_proc.start()
+    if sender_proc:
+        sender_proc.start()
+
+    os.chdir(cwd)
+
+    return (server_proc, sender_proc)
 
 def create_channel(name, rootdir, infile=None, outfile='out'):
     """
@@ -40,49 +118,7 @@ def create_channel(name, rootdir, infile=None, outfile='out'):
     if outfile:
         open(outfile, 'a').close()
 
-    print 'created channel %s in: %s out: %s' % (name, infile, outfile)
-
     os.chdir(cwd)
-
-def get_secret_ids():
-    """
-        List the available secret keys that can be used for decryption or signing.
-
-        return:
-            A dictionary containing subkey and key keys, with lists of every available key list respectively
-
-    """
-    out = get_output('gpg --list-secret-keys --with-colons').split('\n')
-
-    subkeys = []
-    keys = []
-    for line in out:
-        if re.search('^ssb', line):
-            subkeys.append(line.split(':')[4])
-        elif re.search('^sec', line):
-            keys.append(line.split(':')[4])
-
-    return {'keys': keys, 'subkeys': subkeys }
-
-def get_public_ids():
-    """
-        Same as get_secret_ids, except for public keys.
-
-        return:
-            A dictionary containing subkey and key keys, with lists of each respective available key list.
-    """
-    out = get_output('gpg --list-keys --with-colons').split('\n')
-
-    keys = []
-    subkeys = []
-
-    for line in out:
-        if re.search('^pub', line):
-            keys.append(line.split(':')[4])
-        elif re.search('^sub', line):
-            subkeys.append(line.split(':')[4])
-
-    return {'keys': keys, 'subkeys': subkeys }
 
 def resolve_hostname(host, port):
     """
@@ -96,9 +132,6 @@ def resolve_hostname(host, port):
         returns: a tuple for use with socket.connect()
     """
     return socket.getaddrinfo(host, port, 0,0, socket.IPPROTO_TCP)
-
-
-
 
 def run_proc(args, bufsize=0, executable=None, stdin=None, stdout=None, stderr=None, preexec_fn=None, close_fds=False, shell=False, cwd=None, env=None, universal_newlines=False, startupinfo=None, creationflags=0):
     """
@@ -127,26 +160,6 @@ def get_output(args):
 
     return subprocess.check_output(args)
 
-def encrypt(msg, recipient_ids, sign_id=None, armor=True):
-    """
-    Encrypt an input string into a gpg message making an external subprocess call to the system's gpg command.
-
-    Raises any exceptions that subprocess.Popen or Popen.communicate might raise.
-
-    params:
-        msg: a string to encrypt, in theory should just be a serializable blob but only tested with strings.
-        recipient_ids: a list of public keys to encrypt with.
-        sign_id: the key ID to sign with.
-        armor: flag to tell gpg to generate ascii or binary message
-
-    return: the encrypted string
-
-    """
-
-    cmd = get_encrypt_cmd(recipient_ids, sign_id, armor)
-
-    return run_piped_proc(cmd, msg)
-
 def run_piped_proc(cmd, data):
     """
         pass data to stdin and get the output of the process.
@@ -159,96 +172,4 @@ def run_piped_proc(cmd, data):
     p = run_proc(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     out, err = p.communicate(data)
 
-    return out
-
-def recv_ids(keyids):
-    """
-        request key ids to install from the keyserver. This should be tried if
-        gpg cannot decrypt a signed message.
-
-        params:
-            keyids: a list of keyids to request from the keyserver.
-
-        return: nothing. throw an exception upon failure.
-    """
-
-    cmd = 'gpg --recv-keys '
-
-    for key in keyids:
-        cmd += '%s ' % key
-
-
-
-def enarmor(msg):
-    """
-        take a binary gpg message and convert it to an ascii armored one.
-
-        params:
-            msg: the binary blob message
-
-        return: the ascii armored message
-    """
-
-    cmd = 'gpg --enarmor'
-
-    return run_piped_proc(cmd, msg)
-
-def dearmor(msg):
-    """
-        convert an ascii armored gpg message to a binary blob.
-
-        params:
-            msg: the ascii armored message
-
-        return: the message in binary form
-    """
-
-    cmd = 'gpg --dearmor'
-
-    return run_piped_proc(cmd, msg)
-
-def get_encrypt_cmd(recipient_ids, sign_id=None, armor=True):
-    """
-        create an encrypt/sign command for executing through subprocess.
-
-        the order matters: gpg _options_ (local-user) come before _commands_ (--encrypt)
-
-        params:
-            recipient_ids: list of recipient key IDs
-            sign_id: optional key ID to sign message with
-            armor: flag to tell gpg to generate ascii or binary blob message
-
-        return: the constructed gpg command
-    """
-
-    cmd = 'gpg '
-    if armor:
-        cmd += '--armor '
-
-    if sign_id:
-        cmd += '--local-user %s ' % sign_id
-
-
-    for keyid in recipient_ids:
-        cmd += '--recipient %s ' % keyid
-
-    cmd += '--encrypt '
-
-    if sign_id:
-        cmd += '--sign '
-
-    return cmd
-
-
-def get_encrypt_fn(recipient_ids, sign_id=None, armor=True):
-    """
-        construct and return a method to encrypt messages based on certain keyids. should be passed to a sender as the serializing method.
-
-        params:
-            recipient_ids: list of recipient keys to encrypt to
-            sign_id: the optional key to sign with.
-            armor: flag to
-    """
-
-    return (lambda msg: encrypt(msg, keyids, armor))
-
+    return out, err
