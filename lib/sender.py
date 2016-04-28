@@ -40,7 +40,6 @@ def init_sender_from_config(config):
 
     serializer = None
     if encrypt_ids:
-        print 'creating a serializer for encrypted data'
         serializer = lambda x: gpg_helper.encrypt(x)
 
     sender = init_appending_sender('in', 'out',None, host, port, serializer)
@@ -97,13 +96,8 @@ class sender:
                 data = self.serialize(data)[0]
 
             self.sock.connect((self.host, self.port))
-            print 'sending to %s' % self.port
-            sys.stdout.flush()
             self.sock.send(data)
             self.sock.close()
-            print 'sender socket closed'
-            sys.stdout.flush()
-
 
     def __str__(self):
         return str(name) + ':' + str(host) + ':' + str(port)
