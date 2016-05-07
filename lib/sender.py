@@ -76,7 +76,6 @@ class sender:
         self.rootdir = rootdir
         self.host = host
         self.port = port
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.fifo = os.path.join(rootdir, fifoname)
         self.serialize = serializer
 
@@ -98,6 +97,7 @@ class sender:
 
             print 'ENCRYPTED DATA:\n %s' % data
 
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect((self.host, self.port))
 
             self.sock.sendall(data)
