@@ -1,11 +1,11 @@
 
-import ConfigParser
+import configparser
 import os
 
 class config(object):
 
     def __init__(self, name='.config', root=None):
-        self.config = ConfigParser.SafeConfigParser(allow_no_value=True)
+        self.config = configparser.SafeConfigParser(allow_no_value=True)
         if root:
             name = os.path.join(root, name)
         self.config_file = name

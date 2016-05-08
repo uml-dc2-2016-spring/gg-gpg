@@ -4,11 +4,11 @@ import subprocess
 import shlex
 import re
 import socket
-import config
+from . import config
 import logging
-import server
-import sender
-import gpg
+from . import server
+from . import sender
+from . import gpg
 
 def parse_config(filename, rootdir=None):
     """
@@ -62,7 +62,7 @@ def get_server_sender_procs(name, opts):
     serializer = lambda x: gpg_helper.encrypt(x)
 
     #if the store_raw key is not present, attempt to decrypt the data.
-    if not 'store_raw' in opts.keys():
+    if not 'store_raw' in list(opts.keys()):
         deserializer = lambda x: gpg.decrypt(x)
 
     # create the channel. none can be passed into root because we are assuming correct directory.

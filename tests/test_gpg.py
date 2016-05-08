@@ -1,9 +1,8 @@
 import sys
 import os
 import unittest
-sys.path.insert(0, os.path.abspath('../lib'))
 
-import gpg
+from import gpg
 
 class gpg_noclass_tests(unittest.TestCase):
 

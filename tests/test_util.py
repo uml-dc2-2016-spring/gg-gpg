@@ -24,7 +24,7 @@ class test_directory_manip(unittest.TestCase):
         util.create_channel(self.dirname, self.rootdir, infile=fifoname, outfile=logname)
 
         # create_channel should return us to the working directory.
-        self.assertEquals(cwd, os.getcwd(), 'create_channel() did not return caller to working directory.')
+        self.assertEqual(cwd, os.getcwd(), 'create_channel() did not return caller to working directory.')
 
         os.chdir(os.path.join(self.rootdir, self.dirname))
 

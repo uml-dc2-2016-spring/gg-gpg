@@ -1,5 +1,5 @@
 import re
-import util
+from . import util
 
 def init_gpg_from_config(config):
     """
@@ -11,13 +11,13 @@ def init_gpg_from_config(config):
         returns: the gpg object.
     """
 
-    if not 'encrypt_id' in config.keys():
+    if not 'encrypt_id' in list(config.keys()):
         return None
 
     recipient_ids = config['encrypt_id'].split(' ')
 
     sign_id = None
-    if 'sign_id' in config.keys():
+    if 'sign_id' in list(config.keys()):
         sign_id = config['sign_id']
 
     return gpg(recipient_ids, sign_id)

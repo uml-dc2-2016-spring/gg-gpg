@@ -1,4 +1,4 @@
-import SocketServer
+import socketserver
 import os
 import multiprocessing
 import tempfile
@@ -7,10 +7,10 @@ import socket
 import sys
 import time
 
-import util
-import gpg
+from . import util
+from . import gpg
 
-class AbstractTCPHandler(SocketServer.BaseRequestHandler):
+class AbstractTCPHandler(socketserver.BaseRequestHandler):
     """
         class for shared methods between appending and separate file tcp handlers.
     """
@@ -87,7 +87,7 @@ class AppendingTCPHandler(AbstractTCPHandler):
         with self.recv_all_tmp_file() as tmp:
 
             data = tmp.read()
-            print data
+            print(data)
 
             data = self.deserialize(data)
 
@@ -125,7 +125,7 @@ def init_server_from_config(name, config, outfile='out', deserializer=None):
 
         see init_server
     """
-    if 'file_save' in config.keys():
+    if 'file_save' in list(config.keys()):
         return init_server(name, config, SeparateFileTCPHandler, outfile, deserializer)
     else:
         return init_server(name, config, AppendingTCPHandler, outfile, deserializer)
@@ -143,7 +143,7 @@ def init_server(name,  config, TCPHandler, outfile='out', deserializer=None):
 
         return: A multiprocessing.Process, targetting the server.
     """
-    if not 'incoming_port' in config.keys():
+    if not 'incoming_port' in list(config.keys()):
         return None
 
 
@@ -151,12 +151,12 @@ def init_server(name,  config, TCPHandler, outfile='out', deserializer=None):
     host = '0.0.0.0'
     port = int(config['incoming_port'])
 
-    listener = SocketServer.TCPServer((host, port), TCPHandler)
+    listener = socketserver.TCPServer((host, port), TCPHandler)
     listener.allow_reuse_address=1 # in case server needs to be stopped and started.
     listener.outfile = os.path.join(os.getcwd(), outfile) # for the handler to see.
     listener.deserializer = deserializer
     def start():
-        print 'starting server on port %s' % port
+        print('starting server on port %s' % port)
         listener.serve_forever()
 
     proc = multiprocessing.Process(target=start)

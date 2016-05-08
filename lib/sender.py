@@ -1,8 +1,8 @@
 
 import socket
-import util
+from . import util
 import time
-import gpg
+from . import gpg
 import multiprocessing
 import os
 import sys
@@ -20,10 +20,10 @@ def init_sender_from_config(config):
         return: a properly initialized sender object.
 
     """
-    if config.has_key('remote_host') != config.has_key('outgoing_port'):
+    if ('remote_host' in config) != ('outgoing_port' in config):
         raise Exception("malformed config file. sender needs both remote_host and outgoing_port values")
 
-    elif not (config.has_key('remote_host') and config.has_key('outgoing_port')):
+    elif not ('remote_host' in config and 'outgoing_port' in config):
         return None
 
     sign_id = None
@@ -31,10 +31,10 @@ def init_sender_from_config(config):
     host = config['remote_host']
     port = int(config['outgoing_port'])
 
-    if config.has_key('sign_id'):
+    if 'sign_id' in config:
         sign_id = config['sign_id']
 
-    if config.has_key('encrypt_id'):
+    if 'encrypt_id' in config:
         encrypt_ids = config['encrypt_id'].split()
 
     gpg_helper = gpg.init_gpg_from_config(config)
@@ -82,7 +82,8 @@ class sender:
     def start(self):
         while True:
             data = None
-            with open(self.fifo, 'r', 1) as f:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            with open(self.fifo, 'r') as f:
 
                 data = f.read()
 
@@ -95,13 +96,12 @@ class sender:
             if self.serialize:
                 data = self.serialize(data)
 
-            print 'ENCRYPTED DATA:\n %s' % data
+            print('ENCRYPTED DATA:\n %s' % data)
 
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.connect((self.host, self.port))
+            sock.connect((self.host, self.port))
 
-            self.sock.sendall(data)
-            self.sock.close()
+            sock.sendall(data.encode())
+            sock.close()
 
     def __str__(self):
         return str(name) + ':' + str(host) + ':' + str(port)
