@@ -57,7 +57,7 @@ class AbstractTCPHandler(SocketServer.BaseRequestHandler):
         """
         tmp = tempfile.TemporaryFile()
 
-        data = self.request.recv(2 ** 16)
+        data = self.recv_timeout(self.request)
         tmp.write(data)
 
         tmp.seek(0)
